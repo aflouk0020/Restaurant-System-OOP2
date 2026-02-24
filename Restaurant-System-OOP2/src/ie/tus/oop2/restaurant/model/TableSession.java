@@ -5,9 +5,9 @@ import java.time.LocalDateTime;
 public record TableSession(
         long sessionId,
         int tableId,
-        Long reservationId,       // nullable
+        Long reservationId,        // nullable
         LocalDateTime openedAt,
-        LocalDateTime closedAt,   // nullable
-        Long openedByStaffId,     // nullable
-        SessionStatus status
+        LocalDateTime closedAt,    // nullable
+        Long openedByStaffId,      // nullable
+        TableSessionStatus status
 ) {}

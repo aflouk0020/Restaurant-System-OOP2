@@ -1,5 +1,9 @@
 package ie.tus.oop2.restaurant.model;
 
-public class ReservationStatus {
-
+public enum ReservationStatus {
+    CREATED,
+    CONFIRMED,
+    CANCELLED,
+    SEATED,
+    NO_SHOW
 }

@@ -4,7 +4,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public class DatabaseConnection {
+/**
+ * Simple singleton-style JDBC connection helper.
+ *
+ * Note:
+ * - DAOs must NOT close this shared connection.
+ * - Close it once on application shutdown.
+ */
+public final class DatabaseConnection {
 
     private static final String URL =
             "jdbc:mysql://127.0.0.1:3306/restaurant_system_oop2?useSSL=false&serverTimezone=UTC";
@@ -15,22 +22,29 @@ public class DatabaseConnection {
     private static Connection connection;
 
     private DatabaseConnection() {
-        // private constructor to prevent instantiation
+        // prevent instantiation
     }
 
+    /**
+     * Returns a live DB connection. If the connection is null OR has been closed,
+     * it will be created again.
+     */
     public static Connection getConnection() {
-        if (connection == null) {
-            try {
+        try {
+            if (connection == null || connection.isClosed()) {
                 connection = DriverManager.getConnection(URL, USER, PASSWORD);
                 System.out.println("✅ Database connected successfully!");
-            } catch (SQLException e) {
-                System.err.println("❌ Database connection failed!");
-                e.printStackTrace();
             }
+            return connection;
+        } catch (SQLException e) {
+            System.err.println("❌ Database connection failed!");
+            throw new RuntimeException(e);
         }
-        return connection;
     }
 
+    /**
+     * Closes the shared connection (call once when the app exits).
+     */
     public static void closeConnection() {
         try {
             if (connection != null && !connection.isClosed()) {
@@ -39,7 +53,7 @@ public class DatabaseConnection {
                 System.out.println("🔒 Database connection closed.");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 }
