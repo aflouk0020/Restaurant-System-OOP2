@@ -1,6 +1,7 @@
 package ie.tus.oop2.restaurant.test;
 
 import ie.tus.oop2.restaurant.config.DatabaseConnection;
+import ie.tus.oop2.restaurant.model.PaymentType;
 import ie.tus.oop2.restaurant.reporting.ManagerReportsService;
 import ie.tus.oop2.restaurant.reporting.ManagerReportsServiceImpl;
 import org.junit.jupiter.api.*;
@@ -58,6 +59,7 @@ class ManagerReportsServiceImplTest {
     // ------------------------------------------------------------
     // Seed helpers
     // ------------------------------------------------------------
+
     private void ensureDiningTableExists(int tableId) {
         String sql = """
                 INSERT INTO dining_table (table_id, label, capacity, active)
@@ -173,17 +175,35 @@ class ManagerReportsServiceImplTest {
         }
     }
 
+    // Simple payment seed (default CASH/EUR)
     private long seedPayment(long orderId, BigDecimal amount) {
+        return seedPayment(orderId, amount, PaymentType.CASH, "EUR", null, null);
+    }
+
+    // Full payment seed (supports CASH/CARD/VOUCHER)
+    private long seedPayment(long orderId, BigDecimal amount, PaymentType type,
+                             String currency, String cardLast4, String voucherCode) {
+
         String sql = """
                 INSERT INTO payment (order_id, paid_at, payment_type, amount, currency, card_last4, voucher_code)
-                VALUES (?, ?, 'CASH', ?, 'EUR', NULL, NULL)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
+
         try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setLong(1, orderId);
             ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now().withNano(0)));
-            ps.setBigDecimal(3, amount);
+            ps.setString(3, type.name());
+            ps.setBigDecimal(4, amount);
+            ps.setString(5, currency);
+
+            if (cardLast4 == null) ps.setNull(6, Types.CHAR);
+            else ps.setString(6, cardLast4);
+
+            if (voucherCode == null) ps.setNull(7, Types.VARCHAR);
+            else ps.setString(7, voucherCode);
+
             ps.executeUpdate();
 
             try (ResultSet keys = ps.getGeneratedKeys()) {
@@ -197,11 +217,21 @@ class ManagerReportsServiceImplTest {
         }
     }
 
-    private long seedReceipt(long orderId, long paymentId, BigDecimal subtotal, BigDecimal tax, BigDecimal total, LocalDateTime generatedAt) {
+    // Receipt overload (5 args) -> delegates to 6 args
+    private void seedReceipt(long orderId, long paymentId,
+                             BigDecimal subtotal, BigDecimal tax, BigDecimal total) {
+        seedReceipt(orderId, paymentId, subtotal, tax, total, LocalDateTime.now().withNano(0));
+    }
+
+    private long seedReceipt(long orderId, long paymentId,
+                             BigDecimal subtotal, BigDecimal tax, BigDecimal total,
+                             LocalDateTime generatedAt) {
+
         String sql = """
                 INSERT INTO receipt (order_id, payment_id, subtotal, tax, total, generated_at)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """;
+
         try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -262,32 +292,22 @@ class ManagerReportsServiceImplTest {
         long itemBurger = seedMenuItem("Burger", "MAIN", new BigDecimal("12.00"), false);
         long itemSalad  = seedMenuItem("Salad", "STARTER", new BigDecimal("5.00"), true);
 
-        // orderA lines
         seedOrderLine(orderA, itemBurger, "Burger", new BigDecimal("12.00"), 3, "SERVED");
         seedOrderLine(orderA, itemSalad,  "Salad",  new BigDecimal("5.00"),  1, "SERVED");
 
-        // orderB lines
         seedOrderLine(orderB, itemBurger, "Burger", new BigDecimal("12.00"), 2, "SERVED");
 
-        // receipts so orders are counted as PAID
-        BigDecimal totalA = new BigDecimal("0.00"); // don't care exact subtotal math for report, but must be consistent for FK
-        BigDecimal totalB = new BigDecimal("0.00");
-
-        // We'll set receipt totals (any >=0 ok) but payment must exist for FK path. Keep them simple.
         long payA = seedPayment(orderA, new BigDecimal("1.00"));
-        seedReceipt(orderA, payA, new BigDecimal("0.50"), new BigDecimal("0.50"), new BigDecimal("1.00"), LocalDateTime.now().withNano(0));
+        seedReceipt(orderA, payA, new BigDecimal("0.50"), new BigDecimal("0.50"), new BigDecimal("1.00"));
 
         long payB = seedPayment(orderB, new BigDecimal("1.00"));
-        seedReceipt(orderB, payB, new BigDecimal("0.50"), new BigDecimal("0.50"), new BigDecimal("1.00"), LocalDateTime.now().withNano(0));
+        seedReceipt(orderB, payB, new BigDecimal("0.50"), new BigDecimal("0.50"), new BigDecimal("1.00"));
 
         LinkedHashMap<String, Long> top = reports.topSellingItems(10);
 
-        // Burger qty = 3 + 2 = 5, Salad qty = 1
         assertEquals(2, top.size());
         assertEquals(5L, top.get("Burger"));
         assertEquals(1L, top.get("Salad"));
-
-        // Sorted desc => first key should be Burger
         assertEquals("Burger", top.keySet().iterator().next());
     }
 
@@ -300,18 +320,120 @@ class ManagerReportsServiceImplTest {
         long veg = seedMenuItem("Veg Wrap", "MAIN", new BigDecimal("8.00"), true);
         long nonVeg = seedMenuItem("Chicken", "MAIN", new BigDecimal("10.00"), false);
 
-        // veg: 8*2 = 16
-        seedOrderLine(order, veg, "Veg Wrap", new BigDecimal("8.00"), 2, "SERVED");
-        // non-veg: 10*1 = 10
-        seedOrderLine(order, nonVeg, "Chicken", new BigDecimal("10.00"), 1, "SERVED");
+        seedOrderLine(order, veg, "Veg Wrap", new BigDecimal("8.00"), 2, "SERVED");       // 16
+        seedOrderLine(order, nonVeg, "Chicken", new BigDecimal("10.00"), 1, "SERVED");   // 10
 
-        // Make order "paid" by inserting receipt
         long pay = seedPayment(order, new BigDecimal("1.00"));
-        seedReceipt(order, pay, new BigDecimal("0.50"), new BigDecimal("0.50"), new BigDecimal("1.00"), LocalDateTime.now().withNano(0));
+        seedReceipt(order, pay, new BigDecimal("0.50"), new BigDecimal("0.50"), new BigDecimal("1.00"));
 
         Map<Boolean, BigDecimal> parts = reports.partitionSalesByVegetarian();
 
         assertEquals(new BigDecimal("16.00"), parts.get(true));
         assertEquals(new BigDecimal("10.00"), parts.get(false));
+    }
+
+    @Test
+    @Order(4)
+    void revenueByPaymentType_shouldGroupAndSortDesc() {
+        long session1 = seedSession(10);
+        long order1 = seedOrder(session1);
+
+        long session2 = seedSession(11);
+        long order2 = seedOrder(session2);
+
+        long session3 = seedSession(12);
+        long order3 = seedOrder(session3);
+
+        long pay1 = seedPayment(order1, new BigDecimal("28.25"), PaymentType.CASH, "EUR", null, null);
+        seedReceipt(order1, pay1, new BigDecimal("25.00"), new BigDecimal("3.25"), new BigDecimal("28.25"));
+
+        long pay2 = seedPayment(order2, new BigDecimal("50.00"), PaymentType.CARD, "EUR", "1234", null);
+        seedReceipt(order2, pay2, new BigDecimal("44.25"), new BigDecimal("5.75"), new BigDecimal("50.00"));
+
+        long pay3 = seedPayment(order3, new BigDecimal("10.00"), PaymentType.CASH, "EUR", null, null);
+        seedReceipt(order3, pay3, new BigDecimal("8.85"), new BigDecimal("1.15"), new BigDecimal("10.00"));
+
+        LinkedHashMap<PaymentType, BigDecimal> map = reports.revenueByPaymentType();
+
+        assertNotNull(map);
+        assertEquals(new BigDecimal("38.25"), map.get(PaymentType.CASH)); // 28.25 + 10.00
+        assertEquals(new BigDecimal("50.00"), map.get(PaymentType.CARD));
+        assertNull(map.get(PaymentType.VOUCHER));
+
+        assertEquals(PaymentType.CARD, map.keySet().iterator().next());
+    }
+    
+    @Test
+    @Order(5)
+    void peakSalesHour_shouldReturnHourWithHighestRevenue() {
+        long s1 = seedSession(20);
+        long o1 = seedOrder(s1);
+
+        long s2 = seedSession(21);
+        long o2 = seedOrder(s2);
+
+        long s3 = seedSession(22);
+        long o3 = seedOrder(s3);
+
+        // Payments (FK path)
+        long p1 = seedPayment(o1, new BigDecimal("10.00"));
+        long p2 = seedPayment(o2, new BigDecimal("50.00"));
+        long p3 = seedPayment(o3, new BigDecimal("20.00"));
+
+        // Receipts at specific hours:
+        // hour 14 total = 10 + 20 = 30
+        // hour 19 total = 50  -> should win
+        seedReceipt(o1, p1, new BigDecimal("8.85"), new BigDecimal("1.15"), new BigDecimal("10.00"),
+                LocalDateTime.now().withHour(14).withMinute(0).withSecond(0).withNano(0));
+
+        seedReceipt(o2, p2, new BigDecimal("44.25"), new BigDecimal("5.75"), new BigDecimal("50.00"),
+                LocalDateTime.now().withHour(19).withMinute(0).withSecond(0).withNano(0));
+
+        seedReceipt(o3, p3, new BigDecimal("17.70"), new BigDecimal("2.30"), new BigDecimal("20.00"),
+                LocalDateTime.now().withHour(14).withMinute(0).withSecond(0).withNano(0));
+
+        int peakHour = reports.peakSalesHour();
+        assertEquals(19, peakHour);
+
+        var map = reports.revenueByHour();
+        assertEquals(new BigDecimal("50.00"), map.get(19));
+        assertEquals(new BigDecimal("30.00"), map.get(14));
+    }
+    
+    @Test
+    @Order(6)
+    void topRevenueDays_shouldReturnTopNDaysSortedDesc() {
+        // 3 receipts on 3 different days with different totals
+        long s1 = seedSession(30);
+        long o1 = seedOrder(s1);
+        long p1 = seedPayment(o1, new BigDecimal("1.00"));
+        seedReceipt(o1, p1,
+                new BigDecimal("0.50"), new BigDecimal("0.50"), new BigDecimal("50.00"),
+                LocalDateTime.now().minusDays(3).withHour(10).withMinute(0).withSecond(0).withNano(0));
+
+        long s2 = seedSession(31);
+        long o2 = seedOrder(s2);
+        long p2 = seedPayment(o2, new BigDecimal("1.00"));
+        seedReceipt(o2, p2,
+                new BigDecimal("0.50"), new BigDecimal("0.50"), new BigDecimal("10.00"),
+                LocalDateTime.now().minusDays(1).withHour(12).withMinute(0).withSecond(0).withNano(0));
+
+        long s3 = seedSession(32);
+        long o3 = seedOrder(s3);
+        long p3 = seedPayment(o3, new BigDecimal("1.00"));
+        seedReceipt(o3, p3,
+                new BigDecimal("0.50"), new BigDecimal("0.50"), new BigDecimal("30.00"),
+                LocalDateTime.now().minusDays(2).withHour(18).withMinute(0).withSecond(0).withNano(0));
+
+        LinkedHashMap<LocalDate, BigDecimal> top2 = reports.topRevenueDays(2);
+
+        assertEquals(2, top2.size());
+
+        // Should be sorted desc: 50 then 30
+        BigDecimal first = top2.entrySet().iterator().next().getValue();
+        assertEquals(new BigDecimal("50.00"), first);
+
+        BigDecimal second = top2.values().stream().skip(1).findFirst().orElseThrow();
+        assertEquals(new BigDecimal("30.00"), second);
     }
 }

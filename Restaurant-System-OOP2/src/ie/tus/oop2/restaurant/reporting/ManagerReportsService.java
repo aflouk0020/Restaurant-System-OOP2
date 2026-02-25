@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import ie.tus.oop2.restaurant.model.PaymentType;
+
 public interface ManagerReportsService {
 
     /**
@@ -31,4 +33,8 @@ public interface ManagerReportsService {
      * @return Map(true/false) -> total sales amount
      */
     Map<Boolean, BigDecimal> partitionSalesByVegetarian();
+    LinkedHashMap<PaymentType, BigDecimal> revenueByPaymentType();
+    LinkedHashMap<Integer, BigDecimal> revenueByHour();   // hour -> total revenue
+    int peakSalesHour();
+    LinkedHashMap<LocalDate, BigDecimal> topRevenueDays(int limit);
 }

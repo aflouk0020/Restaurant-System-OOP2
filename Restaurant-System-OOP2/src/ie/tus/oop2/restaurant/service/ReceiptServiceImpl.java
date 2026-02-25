@@ -2,6 +2,7 @@ package ie.tus.oop2.restaurant.service;
 
 import ie.tus.oop2.restaurant.dao.*;
 import ie.tus.oop2.restaurant.model.*;
+import ie.tus.oop2.restaurant.model.payment.PaymentValidator;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -65,33 +66,8 @@ public class ReceiptServiceImpl implements ReceiptService {
 
         BigDecimal paid = payment.amount().setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
-        // ✅ Switch expression on enum PaymentType (OOP2 brief feature)
-        switch (payment.paymentType()) {
-
-            case CASH -> {
-                if (paid.compareTo(total) != 0) {
-                    throw new IllegalStateException("Cash amount mismatch. paid=" + paid + " total=" + total);
-                }
-            }
-
-            case CARD -> {
-                if (payment.cardLast4() == null || payment.cardLast4().isBlank()) {
-                    throw new IllegalStateException("Card payment requires last 4 digits.");
-                }
-                if (paid.compareTo(total) != 0) {
-                    throw new IllegalStateException("Card payment amount mismatch. paid=" + paid + " total=" + total);
-                }
-            }
-
-            case VOUCHER -> {
-                if (payment.voucherCode() == null || payment.voucherCode().isBlank()) {
-                    throw new IllegalStateException("Voucher payment requires voucher code.");
-                }
-                if (paid.compareTo(total) != 0) {
-                    throw new IllegalStateException("Voucher payment amount mismatch. paid=" + paid + " total=" + total);
-                }
-            }
-        }
+        // ✅ Advanced: switch expression + sealed types + pattern matching switch
+        validatePayment(payment, paid, total);
 
         Receipt input = new Receipt(
                 0,
@@ -110,6 +86,33 @@ public class ReceiptServiceImpl implements ReceiptService {
         }
 
         return saved;
+    }
+
+    private void validatePayment(Payment payment, BigDecimal paid, BigDecimal total) {
+
+        // ✅ switch expression (PaymentType enum -> context object)
+        PaymentValidationContext ctx = switch (payment.paymentType()) {
+            case CASH -> new CashCtx(paid, total);
+            case CARD -> new CardCtx(paid, total, payment.cardLast4());
+            case VOUCHER -> new VoucherCtx(paid, total, payment.voucherCode());
+        };
+
+        // ✅ pattern matching switch on sealed interface
+        PaymentValidator.validate(
+                payment.paymentType(),
+                paid,
+                total,
+                payment.cardLast4(),
+                payment.voucherCode()
+        );
+    }
+
+    private static void requireExactPaid(BigDecimal paid, BigDecimal total, String label) {
+        if (paid.compareTo(total) != 0) {
+            throw new IllegalStateException(
+                    label + " payment amount mismatch. paid=" + paid + " total=" + total
+            );
+        }
     }
 
     private void exportReceiptToFile(Receipt receipt, Payment payment, Path exportDir) {

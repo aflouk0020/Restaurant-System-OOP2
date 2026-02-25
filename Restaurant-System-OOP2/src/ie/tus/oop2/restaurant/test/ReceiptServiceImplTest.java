@@ -313,4 +313,52 @@ class ReceiptServiceImplTest {
         assertThrows(IllegalStateException.class,
                 () -> service.generateReceiptForOrder(orderId, Path.of("exports/receipts")));
     }
+    
+    
+    @Test
+    @Order(4)
+    void generateReceiptForOrder_shouldFailIfCardAmountMismatch() {
+        long sessionId = seedOpenSession(4);
+        long orderId = seedOrder(sessionId);
+
+        // subtotal = 25.00
+        seedOrderLine(orderId, 4001, "Burger", new BigDecimal("10.00"), 2, OrderLineStatus.NEW); // 20
+        seedOrderLine(orderId, 4002, "Drink",  new BigDecimal("5.00"),  1, OrderLineStatus.NEW); // 5
+
+        BigDecimal subtotal = new BigDecimal("25.00");
+        BigDecimal tax = subtotal.multiply(new BigDecimal("0.13"))
+                .setScale(2, java.math.RoundingMode.HALF_UP); // 3.25
+        BigDecimal total = subtotal.add(tax)
+                .setScale(2, java.math.RoundingMode.HALF_UP); // 28.25
+
+        // CARD requires last4 (so we provide it), but amount is WRONG
+        seedPayment(orderId, new BigDecimal("10.00"), PaymentType.CARD, "EUR", "1234", null);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> service.generateReceiptForOrder(orderId, Path.of("exports/receipts")));
+
+        assertTrue(ex.getMessage().toLowerCase().contains("card"));
+        assertTrue(ex.getMessage().toLowerCase().contains("mismatch"));
+    }
+    @Test
+    @Order(5)
+    void generateReceiptForOrder_shouldFailIfVoucherMissingCode() {
+        long sessionId = seedOpenSession(5);
+        long orderId = seedOrder(sessionId);
+
+        seedOrderLine(orderId, 5001, "Pasta", new BigDecimal("12.00"), 2, OrderLineStatus.NEW); // 24
+        seedOrderLine(orderId, 5002, "Water", new BigDecimal("1.00"),  1, OrderLineStatus.NEW); // 1
+
+        BigDecimal subtotal = new BigDecimal("25.00");
+        BigDecimal tax = subtotal.multiply(new BigDecimal("0.13")).setScale(2, java.math.RoundingMode.HALF_UP); // 3.25
+        BigDecimal total = subtotal.add(tax).setScale(2, java.math.RoundingMode.HALF_UP); // 28.25
+
+        // VOUCHER but code blank -> should fail
+        seedPayment(orderId, total, PaymentType.VOUCHER, "EUR", null, "   ");
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> service.generateReceiptForOrder(orderId, Path.of("exports/receipts")));
+
+        assertTrue(ex.getMessage().toLowerCase().contains("voucher"));
+    }
 }
