@@ -2,7 +2,11 @@ package ie.tus.oop2.restaurant.service;
 
 import ie.tus.oop2.restaurant.dao.*;
 import ie.tus.oop2.restaurant.model.*;
+import ie.tus.oop2.restaurant.model.payment.CardCtx;
+import ie.tus.oop2.restaurant.model.payment.CashCtx;
+import ie.tus.oop2.restaurant.model.payment.PaymentValidationContext;
 import ie.tus.oop2.restaurant.model.payment.PaymentValidator;
+import ie.tus.oop2.restaurant.model.payment.VoucherCtx;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -90,21 +94,15 @@ public class ReceiptServiceImpl implements ReceiptService {
 
     private void validatePayment(Payment payment, BigDecimal paid, BigDecimal total) {
 
-        // ✅ switch expression (PaymentType enum -> context object)
+        // ✅ switch expression (enum → sealed context)
         PaymentValidationContext ctx = switch (payment.paymentType()) {
             case CASH -> new CashCtx(paid, total);
             case CARD -> new CardCtx(paid, total, payment.cardLast4());
             case VOUCHER -> new VoucherCtx(paid, total, payment.voucherCode());
         };
 
-        // ✅ pattern matching switch on sealed interface
-        PaymentValidator.validate(
-                payment.paymentType(),
-                paid,
-                total,
-                payment.cardLast4(),
-                payment.voucherCode()
-        );
+        // ✅ pattern matching switch happens inside validator
+        PaymentValidator.validate(ctx);
     }
 
     private static void requireExactPaid(BigDecimal paid, BigDecimal total, String label) {
