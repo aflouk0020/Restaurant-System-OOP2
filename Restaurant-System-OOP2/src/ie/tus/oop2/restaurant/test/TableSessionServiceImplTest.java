@@ -22,12 +22,14 @@ class TableSessionServiceImplTest {
     @BeforeAll
     static void verifyDbConnection() throws SQLException {
         Connection c = DatabaseConnection.getConnection();
-        assertNotNull(c);
-        assertFalse(c.isClosed());
+        assertNotNull(c, "Database connection is null");
+        assertFalse(c.isClosed(), "Database connection is closed");
     }
 
     @BeforeEach
     void setUp() {
+        // Assumes your service has a no-args constructor and builds its DAOs internally.
+        // If your impl requires DAOs in constructor, tell me and I'll adjust instantly.
         service = new TableSessionServiceImpl();
         cleanTables();
     }
@@ -38,7 +40,7 @@ class TableSessionServiceImplTest {
     }
 
     // ------------------------------------------------------------
-    // Cleaning (dependency safe)
+    // Cleaning (dependency-safe)
     // ------------------------------------------------------------
     private void cleanTables() {
         try (Connection c = DatabaseConnection.getConnection()) {
@@ -58,8 +60,12 @@ class TableSessionServiceImplTest {
         String sql = """
                 INSERT INTO dining_table (table_id, label, capacity, active)
                 VALUES (?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE label = VALUES(label), capacity = VALUES(capacity), active = VALUES(active)
+                ON DUPLICATE KEY UPDATE
+                    label = VALUES(label),
+                    capacity = VALUES(capacity),
+                    active = VALUES(active)
                 """;
+
         try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
@@ -70,13 +76,14 @@ class TableSessionServiceImplTest {
             ps.executeUpdate();
 
         } catch (SQLException e) {
-            fail("Failed to seed dining_table: " + e.getMessage());
+            fail("Failed to seed dining_table(" + tableId + "): " + e.getMessage());
         }
     }
 
     private long insertStaff(String name) {
         String email = "staff_" + UUID.randomUUID() + "@example.com";
         String sql = "INSERT INTO staff (full_name, role, email, active) VALUES (?, 'WAITER', ?, true)";
+
         try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -85,20 +92,27 @@ class TableSessionServiceImplTest {
             ps.executeUpdate();
 
             try (ResultSet keys = ps.getGeneratedKeys()) {
-                assertTrue(keys.next());
+                assertTrue(keys.next(), "No generated key returned for staff insert");
                 return keys.getLong(1);
             }
+
         } catch (SQLException e) {
             fail("Failed to insert staff: " + e.getMessage());
             return -1;
         }
     }
 
-    private long insertReservation(String customer, int partySize, LocalDateTime reservedFor, Integer tableId, ReservationStatus status) {
+    private long insertReservation(String customer,
+                                  int partySize,
+                                  LocalDateTime reservedFor,
+                                  Integer tableId,
+                                  ReservationStatus status) {
+
         String sql = """
                 INSERT INTO reservation (customer_name, phone, party_size, reserved_for, table_id, notes, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
+
         try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -110,12 +124,13 @@ class TableSessionServiceImplTest {
             if (tableId == null) ps.setNull(5, Types.INTEGER);
             else ps.setInt(5, tableId);
 
-            ps.setString(6, null);
+            ps.setNull(6, Types.VARCHAR);         // notes null
             ps.setString(7, status.name());
 
             ps.executeUpdate();
+
             try (ResultSet keys = ps.getGeneratedKeys()) {
-                assertTrue(keys.next());
+                assertTrue(keys.next(), "No generated key returned for reservation insert");
                 return keys.getLong(1);
             }
 
@@ -127,10 +142,12 @@ class TableSessionServiceImplTest {
 
     private ReservationStatus loadReservationStatus(long reservationId) {
         String sql = "SELECT status FROM reservation WHERE reservation_id = ?";
+
         try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
             ps.setLong(1, reservationId);
+
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next(), "Reservation not found for id: " + reservationId);
                 return ReservationStatus.valueOf(rs.getString("status"));
@@ -151,7 +168,6 @@ class TableSessionServiceImplTest {
     void openSession_shouldCreateOpenSession() {
         int tableId = 1;
         ensureDiningTableExists(tableId);
-
         long staffId = insertStaff("Waiter One");
 
         TableSession s = service.openSession(tableId, staffId);
@@ -162,7 +178,7 @@ class TableSessionServiceImplTest {
         assertEquals(TableSessionStatus.OPEN, s.status());
         assertNotNull(s.openedAt());
         assertNull(s.closedAt());
-        assertEquals(staffId, s.openedByStaffId());
+        assertEquals(Long.valueOf(staffId), s.openedByStaffId());
         assertNull(s.reservationId());
     }
 
@@ -192,7 +208,8 @@ class TableSessionServiceImplTest {
         assertNotNull(closed);
         assertEquals(TableSessionStatus.CLOSED, closed.status());
         assertNotNull(closed.closedAt());
-        assertTrue(!closed.closedAt().isBefore(closed.openedAt()), "closed_at must be >= opened_at");
+        assertFalse(closed.closedAt().isBefore(closed.openedAt()),
+                "closed_at must be >= opened_at");
     }
 
     @Test
@@ -215,8 +232,8 @@ class TableSessionServiceImplTest {
         assertNotNull(s);
         assertEquals(TableSessionStatus.OPEN, s.status());
         assertEquals(tableId, s.tableId());
-        assertEquals(reservationId, s.reservationId());
-        assertEquals(staffId, s.openedByStaffId());
+        assertEquals(Long.valueOf(reservationId), s.reservationId());
+        assertEquals(Long.valueOf(staffId), s.openedByStaffId());
 
         ReservationStatus updated = loadReservationStatus(reservationId);
         assertEquals(ReservationStatus.SEATED, updated);
@@ -229,10 +246,24 @@ class TableSessionServiceImplTest {
         ensureDiningTableExists(tableId);
         long staffId = insertStaff("Waiter Block");
 
-        long cancelledId = insertReservation("Cancel", 2, LocalDateTime.now().plusDays(1), tableId, ReservationStatus.CANCELLED);
+        long cancelledId = insertReservation(
+                "Cancel",
+                2,
+                LocalDateTime.now().plusDays(1),
+                tableId,
+                ReservationStatus.CANCELLED
+        );
+
         assertThrows(IllegalStateException.class, () -> service.seatReservation(cancelledId, staffId));
 
-        long noShowId = insertReservation("NoShow", 2, LocalDateTime.now().plusDays(1), tableId, ReservationStatus.NO_SHOW);
+        long noShowId = insertReservation(
+                "NoShow",
+                2,
+                LocalDateTime.now().plusDays(1),
+                tableId,
+                ReservationStatus.NO_SHOW
+        );
+
         assertThrows(IllegalStateException.class, () -> service.seatReservation(noShowId, staffId));
     }
 }
