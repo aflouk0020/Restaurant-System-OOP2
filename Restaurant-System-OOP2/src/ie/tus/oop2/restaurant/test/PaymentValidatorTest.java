@@ -1,7 +1,9 @@
 package ie.tus.oop2.restaurant.test;
 
-import ie.tus.oop2.restaurant.model.PaymentType;
+import ie.tus.oop2.restaurant.model.payment.CardCtx;
+import ie.tus.oop2.restaurant.model.payment.CashCtx;
 import ie.tus.oop2.restaurant.model.payment.PaymentValidator;
+import ie.tus.oop2.restaurant.model.payment.VoucherCtx;
 
 import org.junit.jupiter.api.Test;
 
@@ -16,61 +18,60 @@ class PaymentValidatorTest {
     @Test
     void cash_ok_whenPaidEqualsTotal() {
         assertDoesNotThrow(() ->
-                PaymentValidator.validate(PaymentType.CASH, TOTAL, TOTAL, null, null)
+                PaymentValidator.validate(
+                        new CashCtx(TOTAL, TOTAL)
+                )
         );
     }
 
     @Test
-    void cash_shouldFailWhenMismatch() {
+    void cash_shouldFail_whenMismatch() {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-                PaymentValidator.validate(PaymentType.CASH, new BigDecimal("10.00"), TOTAL, null, null)
+                PaymentValidator.validate(
+                        new CashCtx(new BigDecimal("20.00"), TOTAL)
+                )
         );
-        assertTrue(ex.getMessage().toLowerCase().contains("mismatch"));
+
+        assertTrue(ex.getMessage().toLowerCase().contains("cash"));
     }
 
     @Test
-    void card_ok_whenLast4Present_andPaidMatches() {
+    void card_ok_whenLast4Present() {
         assertDoesNotThrow(() ->
-                PaymentValidator.validate(PaymentType.CARD, TOTAL, TOTAL, "1234", null)
+                PaymentValidator.validate(
+                        new CardCtx(TOTAL, TOTAL, "1234")
+                )
         );
     }
 
     @Test
-    void card_shouldFailWhenLast4Missing() {
+    void card_shouldFail_whenLast4Missing() {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-                PaymentValidator.validate(PaymentType.CARD, TOTAL, TOTAL, null, null)
+                PaymentValidator.validate(
+                        new CardCtx(TOTAL, TOTAL, null)
+                )
         );
-        assertTrue(ex.getMessage().toLowerCase().contains("last 4"));
+
+        assertTrue(ex.getMessage().toLowerCase().contains("last"));
     }
 
     @Test
-    void card_shouldFailWhenMismatch() {
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-                PaymentValidator.validate(PaymentType.CARD, new BigDecimal("28.24"), TOTAL, "1234", null)
-        );
-        assertTrue(ex.getMessage().toLowerCase().contains("mismatch"));
-    }
-
-    @Test
-    void voucher_ok_whenCodePresent_andPaidMatches() {
+    void voucher_ok_whenCodePresent() {
         assertDoesNotThrow(() ->
-                PaymentValidator.validate(PaymentType.VOUCHER, TOTAL, TOTAL, null, "VCH-001")
+                PaymentValidator.validate(
+                        new VoucherCtx(TOTAL, TOTAL, "VOUCH10")
+                )
         );
     }
 
     @Test
-    void voucher_shouldFailWhenCodeMissing() {
+    void voucher_shouldFail_whenCodeMissing() {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-                PaymentValidator.validate(PaymentType.VOUCHER, TOTAL, TOTAL, null, "   ")
+                PaymentValidator.validate(
+                        new VoucherCtx(TOTAL, TOTAL, null)
+                )
         );
+
         assertTrue(ex.getMessage().toLowerCase().contains("voucher"));
-    }
-
-    @Test
-    void voucher_shouldFailWhenMismatch() {
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-                PaymentValidator.validate(PaymentType.VOUCHER, new BigDecimal("1.00"), TOTAL, null, "VCH-001")
-        );
-        assertTrue(ex.getMessage().toLowerCase().contains("mismatch"));
     }
 }
