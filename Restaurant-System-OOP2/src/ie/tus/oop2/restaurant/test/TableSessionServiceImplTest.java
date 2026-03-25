@@ -44,6 +44,10 @@ class TableSessionServiceImplTest {
     // ------------------------------------------------------------
     private void cleanTables() {
         try (Connection c = DatabaseConnection.getConnection()) {
+            try (PreparedStatement ps = c.prepareStatement("DELETE FROM receipt")) { ps.executeUpdate(); }
+            try (PreparedStatement ps = c.prepareStatement("DELETE FROM payment")) { ps.executeUpdate(); }
+            try (PreparedStatement ps = c.prepareStatement("DELETE FROM order_line")) { ps.executeUpdate(); }
+            try (PreparedStatement ps = c.prepareStatement("DELETE FROM `orders`")) { ps.executeUpdate(); }
             try (PreparedStatement ps = c.prepareStatement("DELETE FROM table_session")) { ps.executeUpdate(); }
             try (PreparedStatement ps = c.prepareStatement("DELETE FROM reservation")) { ps.executeUpdate(); }
             try (PreparedStatement ps = c.prepareStatement("DELETE FROM staff")) { ps.executeUpdate(); }

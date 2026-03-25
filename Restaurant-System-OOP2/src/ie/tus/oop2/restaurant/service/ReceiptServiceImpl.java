@@ -1,26 +1,34 @@
 package ie.tus.oop2.restaurant.service;
 
-import ie.tus.oop2.restaurant.dao.*;
-import ie.tus.oop2.restaurant.model.*;
-import ie.tus.oop2.restaurant.model.payment.CardCtx;
-import ie.tus.oop2.restaurant.model.payment.CashCtx;
-import ie.tus.oop2.restaurant.model.payment.PaymentValidationContext;
-import ie.tus.oop2.restaurant.model.payment.PaymentValidator;
-import ie.tus.oop2.restaurant.model.payment.VoucherCtx;
-
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import ie.tus.oop2.restaurant.dao.OrderLineDao;
+import ie.tus.oop2.restaurant.dao.OrderLineDaoImpl;
+import ie.tus.oop2.restaurant.dao.PaymentDao;
+import ie.tus.oop2.restaurant.dao.PaymentDaoImpl;
+import ie.tus.oop2.restaurant.dao.ReceiptDao;
+import ie.tus.oop2.restaurant.dao.ReceiptDaoImpl;
+import ie.tus.oop2.restaurant.model.OrderLine;
+import ie.tus.oop2.restaurant.model.OrderLineStatus;
+import ie.tus.oop2.restaurant.model.Payment;
+import ie.tus.oop2.restaurant.model.Receipt;
+import ie.tus.oop2.restaurant.model.payment.CardCtx;
+import ie.tus.oop2.restaurant.model.payment.CashCtx;
+import ie.tus.oop2.restaurant.model.payment.PaymentValidationContext;
+import ie.tus.oop2.restaurant.model.payment.PaymentValidator;
+import ie.tus.oop2.restaurant.model.payment.VoucherCtx;
+import ie.tus.oop2.restaurant.util.MoneyUtil;
+
 public class ReceiptServiceImpl implements ReceiptService {
 
     private static final BigDecimal TAX_RATE = new BigDecimal("0.13"); // keep as requested
-    private static final int MONEY_SCALE = 2;
+
 
     // receipt_<orderId>_<timestamp>.txt
     private static final DateTimeFormatter FILE_TS =
@@ -55,20 +63,20 @@ public class ReceiptServiceImpl implements ReceiptService {
             throw new IllegalStateException("Cannot generate receipt: order has no lines (orderId=" + orderId + ")");
         }
 
-        BigDecimal subtotal = lines.stream()
-                .filter(l -> l.lineStatus() != OrderLineStatus.CANCELLED)
-                .map(l -> l.unitPriceSnapshot().multiply(BigDecimal.valueOf(l.quantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        BigDecimal subtotal = MoneyUtil.scale(
+                lines.stream()
+                        .filter(l -> l.lineStatus() != OrderLineStatus.CANCELLED)
+                        .map(l -> l.unitPriceSnapshot().multiply(BigDecimal.valueOf(l.quantity())))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+        );
 
         if (subtotal.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("Cannot generate receipt: subtotal <= 0 for order " + orderId);
         }
 
-        BigDecimal tax = subtotal.multiply(TAX_RATE).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal total = subtotal.add(tax).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-
-        BigDecimal paid = payment.amount().setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        BigDecimal tax = MoneyUtil.scale(subtotal.multiply(TAX_RATE));
+        BigDecimal total = MoneyUtil.scale(subtotal.add(tax));
+        BigDecimal paid = MoneyUtil.scale(payment.amount());
 
         // ✅ Advanced: switch expression + sealed types + pattern matching switch
         validatePayment(payment, paid, total);
@@ -105,13 +113,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         PaymentValidator.validate(ctx);
     }
 
-    private static void requireExactPaid(BigDecimal paid, BigDecimal total, String label) {
-        if (paid.compareTo(total) != 0) {
-            throw new IllegalStateException(
-                    label + " payment amount mismatch. paid=" + paid + " total=" + total
-            );
-        }
-    }
+
 
     private void exportReceiptToFile(Receipt receipt, Payment payment, Path exportDir) {
         try {
@@ -127,6 +129,7 @@ public class ReceiptServiceImpl implements ReceiptService {
             throw new RuntimeException("Failed to export receipt file: " + e.getMessage(), e);
         }
     }
+ 
 
     private String buildReceiptText(Receipt r, Payment p) {
         return """
@@ -150,11 +153,11 @@ public class ReceiptServiceImpl implements ReceiptService {
                 r.orderId(),
                 r.paymentId(),
                 r.generatedAt(),
-                r.subtotal(),
-                r.tax(),
-                r.total(),
+                MoneyUtil.formatPlain(r.subtotal()),
+                MoneyUtil.formatPlain(r.tax()),
+                MoneyUtil.formatPlain(r.total()),
                 p.paymentType(),
-                p.amount(),
+                MoneyUtil.formatPlain(p.amount()),
                 p.currency()
         );
     }

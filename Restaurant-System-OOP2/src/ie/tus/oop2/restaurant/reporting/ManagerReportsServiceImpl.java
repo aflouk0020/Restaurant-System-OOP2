@@ -12,9 +12,9 @@ import ie.tus.oop2.restaurant.model.OrderLine;
 import ie.tus.oop2.restaurant.model.OrderLineStatus;
 import ie.tus.oop2.restaurant.model.PaymentType;
 import ie.tus.oop2.restaurant.model.Receipt;
+import ie.tus.oop2.restaurant.util.MoneyUtil;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,8 +22,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ManagerReportsServiceImpl implements ManagerReportsService {
-
-    private static final int MONEY_SCALE = 2;
 
     private final ReceiptDao receiptDao;
     private final OrderLineDao orderLineDao;
@@ -40,28 +38,46 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
         this.orderLineDao = orderLineDao;
         this.menuItemDao = menuItemDao;
     }
-    @Override
-    public BigDecimal averageTableSpend() {
 
-        List<Receipt> receipts = receiptDao.findAll();
+    // ------------------------------------------------------------
+    // Shared DB helper (fast for aggregated totals)
+    // ------------------------------------------------------------
+    private List<BigDecimal> fetchAllReceiptTotals() {
+        String sql = "SELECT total FROM receipt";
 
-        if (receipts.isEmpty()) {
-            return BigDecimal.ZERO.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            List<BigDecimal> totals = new ArrayList<>();
+            while (rs.next()) {
+                BigDecimal t = rs.getBigDecimal("total");
+                if (t != null) totals.add(t);
+            }
+            return totals;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to fetch receipt totals: " + e.getMessage(), e);
         }
-
-        BigDecimal totalRevenue = receipts.stream()
-                .map(Receipt::total)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal average = totalRevenue.divide(
-                BigDecimal.valueOf(receipts.size()),
-                MONEY_SCALE,
-                RoundingMode.HALF_UP
-        );
-
-        return average;
     }
 
+    // ------------------------------------------------------------
+    // Option 1: Average table spend (simple KPI)
+    // ------------------------------------------------------------
+    @Override
+    public BigDecimal averageTableSpend() {
+        List<BigDecimal> totals = fetchAllReceiptTotals();
+        if (totals.isEmpty()) return MoneyUtil.zero();
+
+        BigDecimal sum = totals.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return MoneyUtil.divide(sum, totals.size());
+    }
+
+    // ------------------------------------------------------------
+    // Daily sales totals
+    // ------------------------------------------------------------
     @Override
     public LinkedHashMap<LocalDate, BigDecimal> dailySalesTotals() {
         return receiptDao.findAll().stream()
@@ -73,12 +89,15 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
                 .sorted(Map.Entry.comparingByKey())
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        e -> e.getValue().setScale(MONEY_SCALE, RoundingMode.HALF_UP),
+                        e -> MoneyUtil.scale(e.getValue()),
                         (a, b) -> a,
                         LinkedHashMap::new
                 ));
     }
 
+    // ------------------------------------------------------------
+    // Top selling items
+    // ------------------------------------------------------------
     @Override
     public LinkedHashMap<String, Long> topSellingItems(int limit) {
         if (limit <= 0) limit = 10;
@@ -108,6 +127,9 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
                 ));
     }
 
+    // ------------------------------------------------------------
+    // Partition sales by vegetarian
+    // ------------------------------------------------------------
     @Override
     public Map<Boolean, BigDecimal> partitionSalesByVegetarian() {
 
@@ -133,11 +155,8 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
                         )
                 ));
 
-        BigDecimal vegTotal = raw.getOrDefault(true, BigDecimal.ZERO)
-                .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-
-        BigDecimal nonVegTotal = raw.getOrDefault(false, BigDecimal.ZERO)
-                .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        BigDecimal vegTotal = MoneyUtil.scale(raw.getOrDefault(true, BigDecimal.ZERO));
+        BigDecimal nonVegTotal = MoneyUtil.scale(raw.getOrDefault(false, BigDecimal.ZERO));
 
         Map<Boolean, BigDecimal> out = new HashMap<>();
         out.put(true, vegTotal);
@@ -145,6 +164,9 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
         return out;
     }
 
+    // ------------------------------------------------------------
+    // Revenue by payment type
+    // ------------------------------------------------------------
     private record PaymentSaleRow(PaymentType type, BigDecimal total) {}
 
     @Override
@@ -162,7 +184,7 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
                 .sorted(Map.Entry.<PaymentType, BigDecimal>comparingByValue().reversed())
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        e -> e.getValue().setScale(MONEY_SCALE, RoundingMode.HALF_UP),
+                        e -> MoneyUtil.scale(e.getValue()),
                         (a, b) -> a,
                         LinkedHashMap::new
                 ));
@@ -192,6 +214,9 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
         }
     }
 
+    // ------------------------------------------------------------
+    // Revenue by hour + peak hour
+    // ------------------------------------------------------------
     @Override
     public LinkedHashMap<Integer, BigDecimal> revenueByHour() {
 
@@ -226,7 +251,7 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
                 .sorted(Map.Entry.<Integer, BigDecimal>comparingByValue().reversed())
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        e -> e.getValue().setScale(MONEY_SCALE, RoundingMode.HALF_UP),
+                        e -> MoneyUtil.scale(e.getValue()),
                         (a, b) -> a,
                         LinkedHashMap::new
                 ));
@@ -239,6 +264,9 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
                 .orElseThrow(() -> new IllegalStateException("No receipts found. Cannot compute peakSalesHour."));
     }
 
+    // ------------------------------------------------------------
+    // Top revenue days
+    // ------------------------------------------------------------
     @Override
     public LinkedHashMap<LocalDate, BigDecimal> topRevenueDays(int limit) {
         if (limit <= 0) throw new IllegalArgumentException("limit must be > 0");
@@ -253,6 +281,10 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
                         LinkedHashMap::new
                 ));
     }
+
+    // ------------------------------------------------------------
+    // Revenue by staff
+    // ------------------------------------------------------------
     @Override
     public LinkedHashMap<String, BigDecimal> revenueByStaff() {
 
@@ -297,36 +329,30 @@ public class ManagerReportsServiceImpl implements ManagerReportsService {
                         .thenComparing(Map.Entry.comparingByKey()))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        e -> e.getValue().setScale(MONEY_SCALE, RoundingMode.HALF_UP),
+                        e -> MoneyUtil.scale(e.getValue()),
                         (a, b) -> a,
                         LinkedHashMap::new
                 ));
     }
-    
-    
+
+    // ------------------------------------------------------------
+    // Overall revenue stats (RevenueStats record)
+    // ------------------------------------------------------------
     @Override
     public RevenueStats overallRevenueStats() {
+        List<BigDecimal> totals = fetchAllReceiptTotals();
 
-        // Receipts are the source of truth (paid sales)
-        var receipts = receiptDao.findAll();
+        int count = totals.size();
 
-        int count = receipts.size();
-        if (count == 0) {
-            return new RevenueStats(
-                    BigDecimal.ZERO.setScale(MONEY_SCALE, RoundingMode.HALF_UP),
-                    BigDecimal.ZERO.setScale(MONEY_SCALE, RoundingMode.HALF_UP),
-                    0
-            );
-        }
+        BigDecimal totalRevenue = totals.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal totalRevenue = receipts.stream()
-                .map(Receipt::total)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        totalRevenue = MoneyUtil.scale(totalRevenue);
 
-        BigDecimal averageSpend = totalRevenue
-                .divide(BigDecimal.valueOf(count), MONEY_SCALE, RoundingMode.HALF_UP);
+        BigDecimal avg = (count == 0)
+                ? MoneyUtil.zero()
+                : MoneyUtil.divide(totalRevenue, count);
 
-        return new RevenueStats(totalRevenue, averageSpend, count);
+        return new RevenueStats(totalRevenue, avg, count);
     }
 }
