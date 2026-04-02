@@ -6,6 +6,7 @@ import ie.tus.oop2.restaurant.model.Order;
 import ie.tus.oop2.restaurant.model.OrderStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class OrderServiceImpl implements OrderService {
 
@@ -82,5 +83,9 @@ public class OrderServiceImpl implements OrderService {
         Order o = orderDao.findById(orderId);
         if (o == null) throw new IllegalArgumentException("Order not found: " + orderId);
         return o;
+    }
+    @Override
+    public List<Order> listOrders() {
+        return orderDao.findAll();
     }
 }

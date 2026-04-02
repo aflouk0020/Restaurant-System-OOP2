@@ -175,4 +175,16 @@ public class TableSessionServiceImpl implements TableSessionService {
             this.status = status;
         }
     }
+    
+    @Override
+    public java.util.List<TableSession> listAllSessions() {
+        return sessionDao.findAll();
+    }
+
+    @Override
+    public java.util.List<TableSession> listOpenSessions() {
+        return sessionDao.findAll().stream()
+                .filter(s -> s.status() == TableSessionStatus.OPEN)
+                .toList();
+    }
 }

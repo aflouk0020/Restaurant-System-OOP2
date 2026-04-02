@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="20" xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ie.tus.oop2.restaurant.ui.controller.PaymentsController"
+      styleClass="page-container">
+
+    <padding>
+        <Insets top="6" right="6" bottom="6" left="6"/>
+    </padding>
+
+    <VBox spacing="4">
+        <Label text="Payments" styleClass="section-title"/>
+        <Label text="Create and manage payments for restaurant orders" styleClass="card-title"/>
+    </VBox>
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <ComboBox fx:id="orderSelector" prefWidth="320"/>
+        <ComboBox fx:id="paymentTypeSelector" prefWidth="150"/>
+        <TextField fx:id="amountField" promptText="Amount" prefWidth="130"/>
+        <TextField fx:id="currencyField" promptText="Currency" prefWidth="100"/>
+        <Button fx:id="payButton" text="Pay Now" onAction="#paySelectedOrder" styleClass="primary-button"/>
+        <Button text="Refresh" onAction="#refreshPayments" styleClass="secondary-button"/>
+    </HBox>
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <HBox fx:id="cardBox" spacing="8" alignment="CENTER_LEFT">
+            <Label text="Card Last 4" styleClass="card-title"/>
+            <TextField fx:id="cardLast4Field" promptText="1234" prefWidth="120"/>
+        </HBox>
+
+        <HBox fx:id="voucherBox" spacing="8" alignment="CENTER_LEFT">
+            <Label text="Voucher Code" styleClass="card-title"/>
+            <TextField fx:id="voucherCodeField" promptText="Voucher code" prefWidth="180"/>
+        </HBox>
+    </HBox>
+
+    <HBox spacing="18">
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+            <Label text="Order Total" styleClass="card-title"/>
+            <Label fx:id="orderTotalLabel" text="€0.00" styleClass="card-value"/>
+        </VBox>
+
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+            <Label text="Payment State" styleClass="card-title"/>
+            <Label fx:id="paymentStateLabel" text="UNPAID" styleClass="card-value"/>
+        </VBox>
+
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+            <Label text="Selected Type" styleClass="card-title"/>
+            <Label fx:id="selectedTypeLabel" text="-" styleClass="card-value"/>
+        </VBox>
+    </HBox>
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <Label fx:id="statusLabel" text="" styleClass="card-title"/>
+    </HBox>
+
+    <VBox spacing="12" styleClass="dashboard-card" VBox.vgrow="ALWAYS">
+        <Label text="Payments History" styleClass="section-title"/>
+
+        <TableView fx:id="paymentsTable" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="paymentIdColumn" text="Payment ID" prefWidth="120"/>
+                <TableColumn fx:id="orderIdColumn" text="Order ID" prefWidth="120"/>
+                <TableColumn fx:id="paidAtColumn" text="Paid At" prefWidth="210"/>
+                <TableColumn fx:id="paymentTypeColumn" text="Type" prefWidth="140"/>
+                <TableColumn fx:id="amountColumn" text="Amount" prefWidth="140"/>
+                <TableColumn fx:id="currencyColumn" text="Currency" prefWidth="120"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+</VBox>

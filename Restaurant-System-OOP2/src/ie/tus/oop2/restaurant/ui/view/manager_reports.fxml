@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="20" xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ie.tus.oop2.restaurant.ui.controller.ManagerReportsController"
+      styleClass="page-container">
+
+    <padding>
+        <Insets top="6" right="6" bottom="6" left="6"/>
+    </padding>
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <ComboBox fx:id="reportSelector" prefWidth="280"/>
+        <TextField fx:id="topNField" promptText="Top N (optional)" prefWidth="130"/>
+        <Button text="Run Report" onAction="#runReport" styleClass="primary-button"/>
+        <Button text="Export CSV" onAction="#exportReport" styleClass="secondary-button"/>
+    </HBox>
+
+    <HBox spacing="18">
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+            <Label text="Total Revenue" styleClass="card-title"/>
+            <Label fx:id="totalRevenueLabel" text="€0.00" styleClass="card-value"/>
+        </VBox>
+
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+            <Label text="Payments Count" styleClass="card-title"/>
+            <Label fx:id="ordersCountLabel" text="0" styleClass="card-value"/>
+        </VBox>
+
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+            <Label text="Avg Order Value" styleClass="card-title"/>
+            <Label fx:id="avgOrderValueLabel" text="€0.00" styleClass="card-value"/>
+        </VBox>
+    </HBox>
+
+    <TableView fx:id="reportTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="keyColumn" text="Key" prefWidth="420"/>
+            <TableColumn fx:id="valueColumn" text="Value" prefWidth="500"/>
+        </columns>
+    </TableView>
+</VBox>

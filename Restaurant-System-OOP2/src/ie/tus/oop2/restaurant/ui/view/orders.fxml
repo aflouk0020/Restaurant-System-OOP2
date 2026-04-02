@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="20" xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ie.tus.oop2.restaurant.ui.controller.OrdersController"
+      styleClass="page-container">
+
+    <padding>
+        <Insets top="6" right="6" bottom="6" left="6"/>
+    </padding>
+
+    <VBox spacing="4">
+        <Label text="Orders Management" styleClass="section-title"/>
+        <Label text="Create and manage restaurant orders and their lines" styleClass="card-title"/>
+    </VBox>
+
+    <!-- Order creation -->
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <ComboBox fx:id="sessionSelector" prefWidth="220"/>
+        <TextField fx:id="staffIdField" promptText="Staff ID (optional)" prefWidth="150"/>
+        <TextField fx:id="notesField" promptText="Notes" prefWidth="260"/>
+
+        <Button text="Create Order" onAction="#createOrder" styleClass="primary-button"/>
+        <Button text="Refresh" onAction="#refreshOrders" styleClass="secondary-button"/>
+    </HBox>
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <Button text="Submit Selected" onAction="#submitSelectedOrder" styleClass="secondary-button"/>
+        <Button text="Cancel Selected" onAction="#cancelSelectedOrder" styleClass="secondary-button"/>
+        <Label fx:id="statusLabel" text="" styleClass="card-title"/>
+    </HBox>
+
+    <!-- Orders table -->
+    <VBox spacing="12" styleClass="dashboard-card">
+        <Label text="Orders" styleClass="section-title"/>
+
+		<TableView fx:id="ordersTable" prefHeight="260">
+		    <columns>
+		        <TableColumn fx:id="orderIdColumn" text="Order ID" prefWidth="100"/>
+		        <TableColumn fx:id="sessionIdColumn" text="Session ID" prefWidth="120"/>
+		        <TableColumn fx:id="createdAtColumn" text="Created At" prefWidth="180"/>
+		        <TableColumn fx:id="statusColumn" text="Status" prefWidth="140"/>
+		        <TableColumn fx:id="staffIdColumn" text="Staff ID" prefWidth="120"/>
+		        <TableColumn fx:id="notesColumn" text="Notes" prefWidth="220"/>
+		        <TableColumn fx:id="totalColumn" text="Total (€)" prefWidth="130"/>
+		    </columns>
+		</TableView>
+    </VBox>
+
+    <!-- Order lines management -->
+    <VBox spacing="12" styleClass="dashboard-card" VBox.vgrow="ALWAYS">
+        <Label text="Selected Order Lines" styleClass="section-title"/>
+
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <ComboBox fx:id="menuItemSelector" prefWidth="280"/>
+            <TextField fx:id="quantityField" promptText="Quantity" prefWidth="120"/>
+            <Button text="Add Line" onAction="#addLineToSelectedOrder" styleClass="primary-button"/>
+        </HBox>
+
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <ComboBox fx:id="lineStatusSelector" prefWidth="180"/>
+            <Button text="Update Line Status" onAction="#updateSelectedLineStatus" styleClass="secondary-button"/>
+            <Button text="Cancel Selected Line" onAction="#cancelSelectedLine" styleClass="secondary-button"/>
+        </HBox>
+		<HBox spacing="10" alignment="CENTER_LEFT">
+		    <Label text="Selected Order Total:" styleClass="card-title"/>
+		    <Label fx:id="selectedOrderTotalLabel" text="€0.00" styleClass="card-value"/>
+		</HBox>
+        <TableView fx:id="orderLinesTable" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="lineIdColumn" text="Line ID" prefWidth="90"/>
+                <TableColumn fx:id="lineOrderIdColumn" text="Order ID" prefWidth="90"/>
+                <TableColumn fx:id="menuItemColumn" text="Item" prefWidth="220"/>
+                <TableColumn fx:id="priceColumn" text="Unit Price" prefWidth="120"/>
+                <TableColumn fx:id="quantityColumn" text="Qty" prefWidth="80"/>
+                <TableColumn fx:id="lineStatusColumn" text="Status" prefWidth="140"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+</VBox>

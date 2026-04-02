@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="20" xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ie.tus.oop2.restaurant.ui.controller.DashboardController"
+      styleClass="page-container">
+
+    <padding>
+        <Insets top="6" right="6" bottom="6" left="6"/>
+    </padding>
+
+    <VBox spacing="4">
+        <Label text="Welcome back" styleClass="card-title"/>
+        <Label text="Restaurant Performance Overview" styleClass="section-title"/>
+    </VBox>
+
+    <HBox spacing="18">
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+            <Label text="Total Revenue" styleClass="card-title"/>
+            <Label fx:id="totalRevenueLabel" text="€0.00" styleClass="card-value"/>
+        </VBox>
+
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+           <Label text="Total Payments" styleClass="card-title"/>
+            <Label fx:id="totalReceiptsLabel" text="0" styleClass="card-value"/>
+        </VBox>
+
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+            <Label text="Average Spend" styleClass="card-title"/>
+            <Label fx:id="averageSpendLabel" text="€0.00" styleClass="card-value"/>
+        </VBox>
+
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+            <Label text="Peak Sales Hour" styleClass="card-title"/>
+            <Label fx:id="peakHourLabel" text="--:--" styleClass="card-value"/>
+        </VBox>
+    </HBox>
+
+    <HBox spacing="18" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+
+        <VBox spacing="12" styleClass="dashboard-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+            <Label text="Daily Revenue Trend" styleClass="section-title"/>
+
+            <LineChart fx:id="dailyRevenueChart"
+                       title=""
+                       createSymbols="true"
+                       animated="false"
+                       legendVisible="false"
+                       VBox.vgrow="ALWAYS">
+                <xAxis>
+                    <CategoryAxis label="Date"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis label="Revenue"/>
+                </yAxis>
+            </LineChart>
+        </VBox>
+
+        <VBox spacing="12" styleClass="dashboard-card" prefWidth="420" VBox.vgrow="ALWAYS">
+            <Label text="Top Selling Items" styleClass="section-title"/>
+
+            <BarChart fx:id="topItemsChart"
+                      title=""
+                      animated="false"
+                      legendVisible="false"
+                      categoryGap="16"
+                      barGap="6"
+                      VBox.vgrow="ALWAYS">
+                <xAxis>
+                    <CategoryAxis label="Item"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis label="Quantity Sold"/>
+                </yAxis>
+            </BarChart>
+
+            <VBox spacing="6">
+                <Label fx:id="topItem1Label" text="1. -" styleClass="card-title"/>
+                <Label fx:id="topItem2Label" text="2. -" styleClass="card-title"/>
+                <Label fx:id="topItem3Label" text="3. -" styleClass="card-title"/>
+            </VBox>
+        </VBox>
+    </HBox>
+
+</VBox>
