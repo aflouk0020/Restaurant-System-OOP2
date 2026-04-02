@@ -1,6 +1,8 @@
 package ie.tus.oop2.restaurant.ui.controller;
 
 import ie.tus.oop2.restaurant.model.Order;
+import ie.tus.oop2.restaurant.service.SettingsService;
+import ie.tus.oop2.restaurant.service.SettingsServiceImpl;
 import ie.tus.oop2.restaurant.model.OrderLine;
 import ie.tus.oop2.restaurant.model.OrderLineStatus;
 import ie.tus.oop2.restaurant.model.Receipt;
@@ -26,7 +28,7 @@ import java.util.Locale;
 
 public class ReceiptsController {
 
-    private static final Path EXPORT_DIR = Path.of("exports", "receipts");
+	private final SettingsService settingsService = new SettingsServiceImpl();
 
     private final OrderService orderService = new OrderServiceImpl();
     private final OrderLineService orderLineService = new OrderLineServiceImpl();
@@ -84,6 +86,10 @@ public class ReceiptsController {
             statusLabel.setText("Error: " + e.getMessage());
         }
     }
+    
+    private Path exportDir() {
+        return Path.of(settingsService.load().receiptExportFolder());
+    }
 
     @FXML
     private void generateAndExportReceipt() {
@@ -94,7 +100,7 @@ public class ReceiptsController {
                 return;
             }
 
-            Receipt receipt = receiptService.generateReceiptForOrder(selected.orderId(), EXPORT_DIR);
+            Receipt receipt = receiptService.generateReceiptForOrder(selected.orderId(), exportDir());
             showReceipt(receipt);
             statusLabel.setText("Receipt generated and exported successfully");
 

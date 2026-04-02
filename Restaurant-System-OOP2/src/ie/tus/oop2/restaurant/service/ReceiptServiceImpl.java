@@ -1,6 +1,8 @@
 package ie.tus.oop2.restaurant.service;
 
 import java.io.IOException;
+import ie.tus.oop2.restaurant.service.SettingsService;
+import ie.tus.oop2.restaurant.service.SettingsServiceImpl;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,7 +29,7 @@ import ie.tus.oop2.restaurant.util.MoneyUtil;
 
 public class ReceiptServiceImpl implements ReceiptService {
 
-    private static final BigDecimal TAX_RATE = new BigDecimal("0.13"); // keep as requested
+	private final SettingsService settingsService;
 
 
     // receipt_<orderId>_<timestamp>.txt
@@ -42,12 +44,14 @@ public class ReceiptServiceImpl implements ReceiptService {
         this.receiptDao = new ReceiptDaoImpl();
         this.paymentDao = new PaymentDaoImpl();
         this.orderLineDao = new OrderLineDaoImpl();
+        this.settingsService = new SettingsServiceImpl();
     }
-
+    
     public ReceiptServiceImpl(ReceiptDao receiptDao, PaymentDao paymentDao, OrderLineDao orderLineDao) {
         this.receiptDao = receiptDao;
         this.paymentDao = paymentDao;
         this.orderLineDao = orderLineDao;
+        this.settingsService = new SettingsServiceImpl();
     }
 
     @Override
@@ -80,7 +84,8 @@ public class ReceiptServiceImpl implements ReceiptService {
             throw new IllegalStateException("Cannot generate receipt: subtotal <= 0 for order " + orderId);
         }
 
-        BigDecimal tax = MoneyUtil.scale(subtotal.multiply(TAX_RATE));
+        BigDecimal taxRate = settingsService.load().taxRate();
+        BigDecimal tax = MoneyUtil.scale(subtotal.multiply(taxRate));
         BigDecimal total = MoneyUtil.scale(subtotal.add(tax));
         BigDecimal paid = MoneyUtil.scale(payment.amount());
 

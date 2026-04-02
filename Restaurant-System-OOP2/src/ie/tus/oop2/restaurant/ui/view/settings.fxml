@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="20"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ie.tus.oop2.restaurant.ui.controller.SettingsController"
+      styleClass="page-container">
+
+    <padding>
+        <Insets top="6" right="6" bottom="6" left="6"/>
+    </padding>
+
+    <VBox spacing="4">
+        <Label text="System Settings" styleClass="section-title"/>
+        <Label text="Configure application preferences and export options" styleClass="card-title"/>
+    </VBox>
+
+    <VBox spacing="18" styleClass="dashboard-card">
+        <GridPane hgap="16" vgap="16">
+            <Label text="Restaurant Name:" GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="card-title"/>
+            <TextField fx:id="restaurantNameField" promptText="Restaurant name"
+                       GridPane.rowIndex="0" GridPane.columnIndex="1" prefWidth="320"/>
+
+            <Label text="Default Currency:" GridPane.rowIndex="1" GridPane.columnIndex="0" styleClass="card-title"/>
+            <ComboBox fx:id="currencySelector"
+                      GridPane.rowIndex="1" GridPane.columnIndex="1" prefWidth="180"/>
+
+            <Label text="Tax Rate:" GridPane.rowIndex="2" GridPane.columnIndex="0" styleClass="card-title"/>
+            <TextField fx:id="taxRateField" promptText="0.13"
+                       GridPane.rowIndex="2" GridPane.columnIndex="1" prefWidth="180"/>
+
+            <Label text="Language:" GridPane.rowIndex="3" GridPane.columnIndex="0" styleClass="card-title"/>
+            <ComboBox fx:id="languageSelector"
+                      GridPane.rowIndex="3" GridPane.columnIndex="1" prefWidth="180"/>
+
+            <Label text="Receipt Export Folder:" GridPane.rowIndex="4" GridPane.columnIndex="0" styleClass="card-title"/>
+            <TextField fx:id="exportFolderField" promptText="exports/receipts"
+                       GridPane.rowIndex="4" GridPane.columnIndex="1" prefWidth="320"/>
+        </GridPane>
+
+        <HBox spacing="12">
+            <Button text="Save Settings" onAction="#saveSettings" styleClass="primary-button"/>
+            <Button text="Reset Defaults" onAction="#resetDefaults" styleClass="secondary-button"/>
+        </HBox>
+
+        <Label fx:id="statusLabel" text="" styleClass="card-title"/>
+    </VBox>
+</VBox>

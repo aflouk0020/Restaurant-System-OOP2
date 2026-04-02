@@ -1,6 +1,9 @@
 package ie.tus.oop2.restaurant.ui.controller;
 
 import ie.tus.oop2.restaurant.model.Order;
+import ie.tus.oop2.restaurant.service.SettingsService;
+import ie.tus.oop2.restaurant.service.SettingsServiceImpl;
+import ie.tus.oop2.restaurant.ui.model.AppSettings;
 import ie.tus.oop2.restaurant.model.Payment;
 import ie.tus.oop2.restaurant.model.PaymentType;
 import ie.tus.oop2.restaurant.service.OrderLineService;
@@ -38,6 +41,8 @@ public class PaymentsController {
 
     private final ObservableList<Payment> paymentData = FXCollections.observableArrayList();
     private final NumberFormat euroFormat = NumberFormat.getCurrencyInstance(new Locale("en", "IE"));
+    private final SettingsService settingsService = new SettingsServiceImpl();
+    private AppSettings currentSettings;
 
     @FXML
     private ComboBox<OrderOption> orderSelector;
@@ -108,7 +113,7 @@ public class PaymentsController {
         paymentTypeSelector.setItems(FXCollections.observableArrayList(PaymentType.values()));
         paymentTypeSelector.getSelectionModel().select(PaymentType.CASH);
 
-        currencyField.setText("EUR");
+        loadAppSettings();
 
         loadOrders();
         refreshPayments();
@@ -164,6 +169,11 @@ public class PaymentsController {
         currencyColumn.setCellValueFactory(cell ->
                 new SimpleStringProperty(cell.getValue().currency()));
     }
+    
+    private void loadAppSettings() {
+        currentSettings = settingsService.load();
+        currencyField.setText(currentSettings.defaultCurrency());
+    }
 
     @FXML
     private void refreshPayments() {
@@ -176,6 +186,7 @@ public class PaymentsController {
 
         loadOrders();
         updateSelectedOrderDetails();
+        loadAppSettings();
         statusLabel.setText("Payments refreshed");
     }
 
@@ -278,6 +289,10 @@ public class PaymentsController {
         BigDecimal total = orderLineService.calculateOrderTotal(selected.orderId());
         orderTotalLabel.setText(euroFormat.format(total));
         amountField.setText(total.toPlainString());
+
+        if (currentSettings != null) {
+            currencyField.setText(currentSettings.defaultCurrency());
+        }
 
         Payment existingPayment = paymentService.findByOrderId(selected.orderId());
 

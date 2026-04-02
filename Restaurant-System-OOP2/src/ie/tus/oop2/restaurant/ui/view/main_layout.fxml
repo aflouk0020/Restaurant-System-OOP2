@@ -19,7 +19,7 @@
                 <Insets top="20" right="16" bottom="20" left="16"/>
             </padding>
 
-            <Label text="Restaurant System" styleClass="app-title"/>
+			<Label fx:id="appTitleLabel" text="Restaurant System" styleClass="app-title"/>
             <Label text="Management Dashboard" styleClass="app-subtitle"/>
 
             <VBox spacing="8" styleClass="nav-group">
