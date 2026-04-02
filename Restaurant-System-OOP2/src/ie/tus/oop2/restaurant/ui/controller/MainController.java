@@ -6,6 +6,8 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
+import ie.tus.oop2.restaurant.service.SettingsService;
+import ie.tus.oop2.restaurant.service.SettingsServiceImpl;
 
 public class MainController {
 
@@ -16,22 +18,22 @@ public class MainController {
     private StackPane contentArea;
 
     private Button activeButton;
+    
+    @FXML
+    private Label appTitleLabel;
+
+    private final SettingsService settingsService = new SettingsServiceImpl();
 
     @FXML
     public void initialize() {
         sectionTitleLabel.setText("Dashboard");
 
         try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/ie/tus/oop2/restaurant/ui/view/dashboard.fxml")
-            );
-            contentArea.getChildren().clear();
-            contentArea.getChildren().add(loader.load());
+            appTitleLabel.setText(settingsService.load().restaurantName());
         } catch (Exception e) {
-            e.printStackTrace();
+            appTitleLabel.setText("Restaurant System");
         }
     }
-
     private void setActive(Button button) {
         if (activeButton != null) {
             activeButton.getStyleClass().remove("nav-button-active");
@@ -135,10 +137,21 @@ public class MainController {
     }
 
     @FXML
-    private void showSettings(ActionEvent event) {
-        setActive((Button) event.getSource());
+    private void showSettings(javafx.event.ActionEvent event) {
+        setActive((javafx.scene.control.Button) event.getSource());
         sectionTitleLabel.setText("Settings");
-        contentArea.getChildren().clear();
+
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                    getClass().getResource("/ie/tus/oop2/restaurant/ui/view/settings.fxml")
+            );
+            
+            contentArea.getChildren().clear();
+            contentArea.getChildren().add(loader.load());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     @FXML

@@ -1,5 +1,7 @@
 package ie.tus.oop2.restaurant.app;
 
+import ie.tus.oop2.restaurant.service.SettingsService;
+import ie.tus.oop2.restaurant.service.SettingsServiceImpl;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -18,7 +20,9 @@ public class MainApp extends Application {
                 MainApp.class.getResource("/ie/tus/oop2/restaurant/ui/view/app.css").toExternalForm()
         );
 
-        stage.setTitle("Restaurant Management System");
+        SettingsService settingsService = new SettingsServiceImpl();
+        stage.setTitle(settingsService.load().restaurantName());
+
         stage.setWidth(1280);
         stage.setHeight(800);
         stage.setMinWidth(1100);

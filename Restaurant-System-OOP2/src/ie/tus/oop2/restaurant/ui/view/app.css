@@ -229,3 +229,7 @@
     -fx-font-size: 12px;
     -fx-font-weight: 600;
 }
+
+.grid-pane {
+    -fx-alignment: TOP_LEFT;
+}
