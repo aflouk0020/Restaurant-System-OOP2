@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="20" xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ie.tus.oop2.restaurant.ui.controller.ReceiptsController"
+      styleClass="page-container">
+
+    <padding>
+        <Insets top="6" right="6" bottom="6" left="6"/>
+    </padding>
+
+    <VBox spacing="4">
+        <Label text="Receipts" styleClass="section-title"/>
+        <Label text="Generate and export restaurant receipts" styleClass="card-title"/>
+    </VBox>
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <ComboBox fx:id="orderSelector" prefWidth="320"/>
+        <Button text="Generate Receipt" onAction="#generateReceipt" styleClass="primary-button"/>
+        <Button text="Generate &amp; Export" onAction="#generateAndExportReceipt" styleClass="secondary-button"/>
+        <Button text="Refresh" onAction="#refreshOrders" styleClass="secondary-button"/>
+    </HBox>
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <Label fx:id="statusLabel" text="" styleClass="card-title"/>
+    </HBox>
+
+    <HBox spacing="18">
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="180">
+            <Label text="Receipt ID" styleClass="card-title"/>
+            <Label fx:id="receiptIdLabel" text="-" styleClass="card-value"/>
+        </VBox>
+
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="180">
+            <Label text="Order ID" styleClass="card-title"/>
+            <Label fx:id="orderIdLabel" text="-" styleClass="card-value"/>
+        </VBox>
+
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="220">
+            <Label text="Total" styleClass="card-title"/>
+            <Label fx:id="totalLabel" text="€0.00" styleClass="card-value"/>
+        </VBox>
+
+        <VBox spacing="8" styleClass="dashboard-card" prefWidth="280">
+            <Label text="Generated At" styleClass="card-title"/>
+            <Label fx:id="generatedAtLabel" text="-" styleClass="card-value"/>
+        </VBox>
+    </HBox>
+
+    <VBox spacing="12" styleClass="dashboard-card" VBox.vgrow="ALWAYS">
+        <Label text="Receipt Preview" styleClass="section-title"/>
+
+        <TextArea fx:id="receiptPreviewArea"
+                  editable="false"
+                  wrapText="false"
+                  prefHeight="420"
+                  style="-fx-font-family: 'Menlo'; -fx-font-size: 13px;"/>
+    </VBox>
+
+</VBox>

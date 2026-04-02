@@ -57,7 +57,13 @@ public class ReceiptServiceImpl implements ReceiptService {
         if (payment == null) {
             throw new IllegalStateException("Cannot generate receipt: no payment exists for order " + orderId);
         }
-
+        Receipt existing = receiptDao.findByOrderId(orderId);
+        if (existing != null) {
+            if (exportDir != null) {
+                exportReceiptToFile(existing, payment, exportDir);
+            }
+            return existing;
+        }
         List<OrderLine> lines = orderLineDao.findByOrderId(orderId);
         if (lines == null || lines.isEmpty()) {
             throw new IllegalStateException("Cannot generate receipt: order has no lines (orderId=" + orderId + ")");

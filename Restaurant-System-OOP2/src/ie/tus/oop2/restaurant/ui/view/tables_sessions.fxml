@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="20" xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ie.tus.oop2.restaurant.ui.controller.TablesSessionsController"
+      styleClass="page-container">
+
+    <padding>
+        <Insets top="6" right="6" bottom="6" left="6"/>
+    </padding>
+
+    <VBox spacing="4">
+        <Label text="Tables &amp; Sessions" styleClass="section-title"/>
+        <Label text="Manage dining tables and table sessions" styleClass="card-title"/>
+    </VBox>
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <ComboBox fx:id="tableSelector" prefWidth="220"/>
+        <TextField fx:id="staffIdField" promptText="Staff ID (optional)" prefWidth="150"/>
+
+        <Button text="Open Session" onAction="#openSession" styleClass="primary-button"/>
+        <Button text="Close Selected Session" onAction="#closeSelectedSession" styleClass="secondary-button"/>
+        <Button text="Refresh" onAction="#refreshData" styleClass="secondary-button"/>
+    </HBox>
+
+    <Label fx:id="statusLabel" text="" styleClass="card-title"/>
+
+    <HBox spacing="18" VBox.vgrow="ALWAYS">
+
+        <VBox spacing="12" styleClass="dashboard-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+            <Label text="Dining Tables" styleClass="section-title"/>
+
+            <TableView fx:id="tablesTable" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="tableIdColumn" text="Table ID" prefWidth="100"/>
+                    <TableColumn fx:id="tableLabelColumn" text="Label" prefWidth="140"/>
+                    <TableColumn fx:id="capacityColumn" text="Capacity" prefWidth="120"/>
+                    <TableColumn fx:id="activeColumn" text="Active" prefWidth="100"/>
+                </columns>
+            </TableView>
+        </VBox>
+
+        <VBox spacing="12" styleClass="dashboard-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+            <Label text="Table Sessions" styleClass="section-title"/>
+
+            <TableView fx:id="sessionsTable" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="sessionIdColumn" text="Session ID" prefWidth="100"/>
+                    <TableColumn fx:id="sessionTableIdColumn" text="Table ID" prefWidth="100"/>
+                    <TableColumn fx:id="openedAtColumn" text="Opened At" prefWidth="180"/>
+                    <TableColumn fx:id="closedAtColumn" text="Closed At" prefWidth="180"/>
+                    <TableColumn fx:id="openedByColumn" text="Opened By" prefWidth="120"/>
+                    <TableColumn fx:id="sessionStatusColumn" text="Status" prefWidth="120"/>
+                </columns>
+            </TableView>
+        </VBox>
+
+    </HBox>
+</VBox>
